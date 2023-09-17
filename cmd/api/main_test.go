@@ -122,6 +122,106 @@ func TestValidateUserTableDriven(t *testing.T) {
 	}
 }
 
+func TestCreateCarHandler(t *testing.T) {
+	jsonData := `{
+		"model": "TestModel",
+		"year": 2023,
+		"price": 50000,
+		"marka": "TestMarka",
+		"color": "TestColor",
+		"type": "TestType",
+		"image": "TestImage",
+		"description": "TestDescription"
+	}`
+
+	byteArr := []byte(jsonData)
+	bodyReader := bytes.NewReader(byteArr)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/v1/cars", bodyReader)
+
+	getAppInstance.createCarHandler(w, r)
+
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected status code %d, but got %d", http.StatusCreated, w.Code)
+	}
+}
+
+func TestUpdateCarHandler(t *testing.T) {
+	jsonData := `{
+		"model": "UpdatedModel",
+		"year": 2024,
+		"price": 55000,
+		"marka": "UpdatedMarka",
+		"color": "UpdatedColor",
+		"type": "UpdatedType",
+		"image": "UpdatedImage",
+		"description": "UpdatedDescription"
+	}`
+
+	byteArr := []byte(jsonData)
+	bodyReader := bytes.NewReader(byteArr)
+
+	req := httptest.NewRequest(http.MethodPut, "/v1/cars/1", bodyReader)
+	rec := httptest.NewRecorder()
+
+	getAppInstance.updateCarHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, but got: %d", http.StatusOK, rec.Code)
+	}
+}
+
+func TestDeleteCarHandler(t *testing.T) {
+	req := httptest.NewRequest(http.MethodDelete, "/v1/cars/1", nil)
+	rec := httptest.NewRecorder()
+
+	getAppInstance.deleteCarHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, but got: %d", http.StatusOK, rec.Code)
+	}
+}
+
+func TestReadJSONTableDriven(t *testing.T) {
+	type inputStruct struct {
+		Name     string `json:"name"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Role     string `json:"role"`
+	}
+
+	var tests = []struct {
+		name     string
+		input    inputStruct
+		expected string
+	}{
+		{
+			name: "correct_json",
+			input: inputStruct{
+				Name:     "Erlan Mukhtarov",
+				Email:    "erlan@gmail.com",
+				Password: "erlaaa123",
+				Role:     "user",
+			},
+			expected: "",
+		},
+	}
+
+	for _, tst := range tests {
+		t.Run(tst.name, func(t *testing.T) {
+			bodyJSON, _ := json.Marshal(tst.input)
+			bodyReader := bytes.NewReader(bodyJSON)
+			w := httptest.NewRecorder()
+			r, _ := http.NewRequest(http.MethodPost, "http://localhost:4000/v1/users", bodyReader)
+			err := getAppInstance.readJSON(w, r, &tst.input)
+			if err != nil && err.Error() != tst.expected {
+				t.Errorf("Got an unexpected error: %v", err)
+			}
+		})
+	}
+}
+
 func TestValidatePermittedValueTableDriven(t *testing.T) {
 	var tests = []struct {
 		name     string
@@ -262,45 +362,6 @@ func TestValidateMarkaTableDriven(t *testing.T) {
 			data.ValidateMarka(val, tst.input)
 			if val.Errors[tst.key] != tst.expected {
 				t.Errorf("We received an unexpected error: %v", val.Errors)
-			}
-		})
-	}
-}
-
-func TestReadJSONTableDriven(t *testing.T) {
-	type inputStruct struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		Role     string `json:"role"`
-	}
-
-	var tests = []struct {
-		name     string
-		input    inputStruct
-		expected string
-	}{
-		{
-			name: "correct_json",
-			input: inputStruct{
-				Name:     "Erlan Mukhtarov",
-				Email:    "erlan@gmail.com",
-				Password: "erlaaa123",
-				Role:     "user",
-			},
-			expected: "",
-		},
-	}
-
-	for _, tst := range tests {
-		t.Run(tst.name, func(t *testing.T) {
-			bodyJSON, _ := json.Marshal(tst.input)
-			bodyReader := bytes.NewReader(bodyJSON)
-			w := httptest.NewRecorder()
-			r, _ := http.NewRequest(http.MethodPost, "http://localhost:4000/v1/users", bodyReader)
-			err := getAppInstance.readJSON(w, r, &tst.input)
-			if err != nil && err.Error() != tst.expected {
-				t.Errorf("Got an unexpected error: %v", err)
 			}
 		})
 	}
